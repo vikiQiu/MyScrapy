@@ -33,12 +33,35 @@ name = "qiancheng" #爬虫名称
 DOWNLOAD_DELAY = 2 # 延长时间
 ```
 如果设置了start_urls会自动遍历所有urls并调用parse函数。
+
 **start_requests**函数
 ```python
 def start_requests(self):
 	page_num=10
 	for page in range(page_num):
 		url='http://search.51job.com/jobsearch/search_result.php?fromJs=1&jobarea=000000%2C00&district=000000&funtype=0000&keyword=数据挖掘&keywordtype=2&curr_page='+str(page+1)+'&lang=c&stype=1&postchannel=0000&workyear=99&cotype=99&degreefrom=99&jobterm=99&companysize=99&lonlat=0%2C0&radius=-1&ord_field=0&list_type=0&fromType=14&dibiaoid=0&confirmdate=9'
-	  print '第%d页:%s' % (page+1,url)
-  	yield scrapy.Request(url=url, callback=self.parse_page)
+		print '第%d页:%s' % (page+1,url)
+  		yield scrapy.Request(url=url, callback=self.parse_page)
+```
+**parse_page**函数，在yield中调用了
+```python
+def parse_page(self, response):
+	bodys=response.css('div.el')
+	for index,body in enumerate(bodys):
+		url=body.css('p.t1 span a::attr(href)').extract_first()
+		if url is None:
+			continue
+		#print '＃＃＃＃第%d个岗位' % index
+		item=QianchengItem()
+		item['job_name']=body.css('p.t1 span a::attr(title)').extract_first()
+		item['job_url']=url
+		item['job_enterprise']=body.css('span.t2 a::attr(title)').extract_first()
+		item['job_place']=body.css('span.t3::text').extract_first()
+		if body.css('span.t4::text'):
+			item['salary']=body.css('span.t4::text').extract_first()
+		else:
+			item['salary']='Null'
+		item['date']=body.css('span.t5::text').extract_first()
+		print item
+		yield item
 ```
